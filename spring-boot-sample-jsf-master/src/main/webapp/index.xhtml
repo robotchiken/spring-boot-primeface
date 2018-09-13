@@ -1,0 +1,191 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<f:view contentType="text/html" xmlns="http://www.w3.org/1999/xhtml"
+	xmlns:ui="http://java.sun.com/jsf/facelets"
+	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:f="http://java.sun.com/jsf/core"
+	xmlns:pt="http://xmlns.jcp.org/jsf/passthrough"
+	xmlns:p="http://primefaces.org/ui">
+	<html>
+
+<h:head>
+
+	<!-- For Bootstrap responsive grid 
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" />
+  -->
+	<h:outputStylesheet library="css" name="bootstrap.min.css" />
+
+	<!--
+<h:outputStylesheet library="css" name="fullcalendar.min.css"  />
+<link href="#{request.contextPath}/css/fullcalendar.print.css" rel="stylesheet" type="text/css" media='print'></link>
+  
+<h:outputStylesheet library="css" name="fullcalendar.print.css"  />
+
+<h:outputStylesheet library="css" name="jquery-ui.css" />
+<h:outputStylesheet library="css" name="principal.css" />
+
+<h:outputScript library="js" name="moment.min.js" />
+<h:outputScript library="js" name="jquery.min.js" />
+<h:outputScript library="js" name="jquery-ui.min.js" />
+<h:outputScript library="js" name="fullcalendar.min.js" />
+<h:outputScript library="js" name="principal.js" />
+-->
+</h:head>
+
+<h:body>
+<script type="text/javascript">
+    function handleDrop(event, ui) {
+    	ui.draggable.fadeOut('fast');
+    }
+</script>
+	<h:form id="form">
+		<p:panel header="Basic PanelGrid" style="margin-bottom:10px;">
+			<p:messages id="msgs" />
+			<h:panelGrid columns="3" cellpadding="5">
+				<h:outputLabel for="field" value="Número de usuario: *" />
+				<p:inputText id="field" value="#{formBean.field}" pt:placeholder="Input a value" required="true">
+					<f:validateLength minimum="2" />
+				</p:inputText>
+				<p:message for="field" display="icon" id="msgTxt"/>
+			</h:panelGrid>
+			<p:commandButton value="Submit" action="#{formController.submit}" ajax="true" icon="fa fa-save" update="tblCalendario,msgs,msgTxt,comicsDisponibles"/>
+		</p:panel>
+		<p:panel header="Comics en calendario">
+		<p:dataTable var="cal" value="#{formBean.calendario}" id="tblCalendario" paginator="true" rows="10" filteredValue="#{formBean.filteredCalendario}" widgetVar="tblCalendario">
+          	<p:column filterBy="#{cal.comic.titulo}" headerText="Titulo" filterMatchMode="contains">
+				<h:outputText value="#{cal.comic.titulo}" />
+			</p:column>
+			<p:column filterBy="#{cal.fechaPublicar}"  headerText="Fecha a Publicar" filterFunction="#{formController.filterByFecha}">
+				 <f:facet name="filter">
+		             <p:calendar id="from" styleClass="customCalendar" pattern="dd/MM/yyyy">
+		                 <p:ajax event="dateSelect" oncomplete="PF('tblCalendario').filter()" update="tblCalendario"/>
+		             </p:calendar>
+		             <p:calendar id="to" styleClass="customCalendar" pattern="dd/MM/yyyy">
+		                 <p:ajax event="dateSelect" oncomplete="PF('tblCalendario').filter()" update="tblCalendario"/>
+		             </p:calendar>
+		         </f:facet>
+				<h:outputText value="#{cal.fechaPublicar}" >
+					<f:convertDateTime pattern="dd/MM/yyyy" />
+				</h:outputText>
+			</p:column>
+			<p:column headerText="Número">
+				<h:outputText value="#{cal.numero}" />
+			</p:column>
+			<p:column headerText="Precio" filterBy="#{cal.comic.precio}" filterFunction="#{formController.filterByPrice}">
+				<h:outputText value="#{cal.comic.precio}" >
+					<f:convertNumber currencySymbol="$" type="currency"/>
+				</h:outputText>
+			</p:column>
+			<p:column>
+             	<p:commandButton icon="ui-icon-trash"
+                   title="Borrar Comic"
+                   actionListener="#{formController.removeFromCalendar(cal)}"
+                   ajax="true" update=":form:dropArea,:form:comicsDisponibles,:form:tblCalendario" />
+           	</p:column>
+           	<p:column>
+               	<p:commandButton icon="ui-icon-cart"
+                   title="Comprar Comic"
+                   actionListener="#{formController.buyFromCalendar(cal)}"
+                   ajax="true" update=":form:dropArea,:form:comicsDisponibles,:form:tblCalendario,:form:msgs" />
+           	</p:column>
+			<p:columnGroup type="footer">
+				<p:row>
+					<p:column colspan="3" style="text-align:right" footerText="Total:"/>
+					<p:column footerText="$#{formController.totalCalendario}" />
+				</p:row>
+			</p:columnGroup>
+          </p:dataTable>
+		</p:panel>
+		
+		<p:fieldset legend="Comics Disponibles" id="comicsDisponibles">
+			<p:dataTable var="com" value="#{formBean.comicsDisponibles}" id="comics" paginator="true" 
+			rows="10" rowKey="com.idComic" widgetVar="comicTable" filteredValue="#{formBean.filteredComic}">
+		        <p:column style="width:30px">
+		        	<h:outputText id="dragIcon" styleClass="ui-icon ui-icon-arrow-4" />
+	                <p:draggable for="dragIcon" revert="true" helper="clone"/>
+		        </p:column>
+		        
+				<p:column headerText="Titulo">
+						<h:outputText value="#{com.titulo}" />
+				</p:column>
+				<p:column headerText="Editorial" filterBy="#{com.editorial.nombre}" filterMatchMode="exact">
+						 <f:facet name="filter">
+			                <p:selectOneMenu onchange="PF('comicTable').filter()" >
+			                    <f:selectItem itemLabel="Selecciona uno" itemValue="#{null}" noSelectionOption="true" />
+			                    <f:selectItems value="#{formController.editoriales}"/>
+			                </p:selectOneMenu>
+			            </f:facet>
+						<h:outputText value="#{com.editorial.nombre}" />
+				</p:column>
+				<p:column headerText="Periodicidad" filterBy="#{com.periodicidad.descripcion}" filterMatchMode="exact">
+						<f:facet name="filter">
+			                <p:selectOneMenu onchange="PF('comicTable').filter()" >
+			                    <f:selectItem itemLabel="Selecciona uno" itemValue="#{null}" noSelectionOption="true" />
+			                    <f:selectItems value="#{formController.periodicidades}"/>
+			                </p:selectOneMenu>
+			            </f:facet>
+						<h:outputText value="#{com.periodicidad.descripcion}" />
+				</p:column>
+				<p:column headerText="Precio" filterBy="#{com.precio}" filterFunction="#{formController.filterByPrice}">
+						<h:outputText value="#{com.precio}" >
+							<f:convertNumber currencySymbol="$" type="currency"/>
+						</h:outputText>
+				</p:column>
+			</p:dataTable>
+		</p:fieldset>
+		<p:fieldset id="selectedComics" legend="Comics a comprar" style="margin-top:20px">
+			<p:outputPanel id="dropArea">
+			
+				<h:outputText value="!!!Deposita aqui!!!" rendered="#{empty formBean.selectedComicsCalendar}" style="font-size:24px;" />
+			    
+			    <p:dataTable value="#{formBean.selectedComicsCalendar}" var="com" rendered="#{not empty formBean.selectedComicsCalendar}" 
+			    id="buyComics" paginator="true" rows="10" editable="true" rowKey="com.idComic" filteredValue="#{formBean.filteredSelectedComicsCalendar}">
+		            <p:column headerText="Titulo" filterBy="#{com.titulo}" filterMatchMode="contains">
+							<h:outputText value="#{com.titulo}" />
+					</p:column>
+					<p:column headerText="Fecha Publicacion">
+						<p:cellEditor>
+							<f:facet name="output">
+								<h:outputText value="#{com.fechaPublicacion}" >
+									<f:convertDateTime pattern="dd/MM/yyyy" />
+								</h:outputText>
+							</f:facet>
+							<f:facet name="input">
+	                            <p:calendar value="#{com.fechaPublicacion}" />
+	                        </f:facet>
+						</p:cellEditor>
+					</p:column>
+					<p:column headerText="Número">
+						<p:cellEditor>
+							<f:facet name="output">
+								<h:outputText value="#{com.numero}"/>
+							</f:facet>
+							<f:facet name="input">
+	                            <p:inputText value="#{com.numero}" required="true" requiredMessage="Numero no puede estar nulo"/>
+	                        </f:facet>
+						</p:cellEditor>
+					</p:column>
+					<p:column>
+						<p:rowEditor />
+					</p:column>
+					<p:column>
+                    	<p:commandButton icon="ui-icon-trash"
+                        title="Borrar Comic"
+                        actionListener="#{formController.remove(com)}"
+                        ajax="true" update=":form:dropArea,:form:comicsDisponibles" />
+                	</p:column>
+                	<p:column>
+                    	<p:commandButton icon="ui-icon-cart"
+                        title="Comprar Comic"
+                        actionListener="#{formController.buy(com)}"
+                        ajax="true" update=":form:dropArea,:form:comicsDisponibles,:form:tblCalendario,:form:msgs" />
+                	</p:column>
+            	</p:dataTable>
+        </p:outputPanel>
+        </p:fieldset>
+        <p:droppable for="selectedComics" tolerance="touch" activeStyleClass="ui-state-highlight" datasource="comics" onDrop="handleDrop">
+        	<p:ajax listener="#{formController.onComicDrop}" update="dropArea,comics" />
+    	</p:droppable>
+	</h:form>
+</h:body>
+</html>
+</f:view>
